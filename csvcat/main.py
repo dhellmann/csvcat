@@ -1,54 +1,12 @@
 #!/usr/bin/env python
-#
-# Copyright 2007 Doug Hellmann.
-#
-#
-#                         All Rights Reserved
-#
-# Permission to use, copy, modify, and distribute this software and
-# its documentation for any purpose and without fee is hereby
-# granted, provided that the above copyright notice appear in all
-# copies and that both that copyright notice and this permission
-# notice appear in supporting documentation, and that the name of Doug
-# Hellmann not be used in advertising or publicity pertaining to
-# distribution of the software without specific, written prior
-# permission.
-#
-# DOUG HELLMANN DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
-# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN
-# NO EVENT SHALL DOUG HELLMANN BE LIABLE FOR ANY SPECIAL, INDIRECT OR
-# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
-# OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
-# NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
-# CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-#
-
 """Concatenate csv files.
-
 """
 
-__module_id__ = "$Id: csvcat 897 2007-08-22 22:41:51Z dhellmann $"
-
-#
-# Import system modules
-#
+import argparse
 import csv
 import sys
 
-#
-# Import local modules
-#
-import commandlineapp
-
-#
-# Module
-#
-
-class csvcat(commandlineapp.CommandLineApp):
-    """Concatenate comma separated value files.
-    """
-
-    EXAMPLES_DESCRIPTION = '''
+EPILOG = """
 To concatenate 2 files, including all columns and headers:
 
   $ csvcat file1.csv file2.csv
@@ -60,95 +18,105 @@ To concatenate 2 files, skipping the headers in the second file:
 To concatenate 2 files, including only the first and third columns:
 
   $ csvcat --col 0,2 file1.csv file2.csv
-'''
+"""
 
-    def showVerboseHelp(self):
-        commandlineapp.CommandLineApp.showVerboseHelp(self)
-        print
-        print 'OUTPUT DIALECTS:'
-        print
-        for name in csv.list_dialects():
-            print '\t%s' % name
-        print
-        return
 
-    skip_headers = False
-    def optionHandler_skip_headers(self):
-        """Treat the first line of each file as a header,
-        and only include one copy in the output.
-        """
-        self.skip_headers = True
-        return
+def _get_column_nums_from_args(columns):
+    """Turn column inputs from user into list of simple numbers.
 
-    columns = []
-    def optionHandler_columns(self, *col):
-        """Limit the output to the specified columns.
-        Columns are identified by number, starting with 0.
-        """
-        self.columns.extend([int(c) for c in col])
-        return
-    optionHandler_c = optionHandler_columns
+    Inputs can be:
 
-    dialect = "excel"
-    def optionHandler_dialect(self, name):
-        """Specify the output dialect name.
-        Defaults to "excel".
-        """
-        self.dialect = name
-        return
-    optionHandler_d = optionHandler_dialect
-
-    def getPrintableColumns(self, row):
-        """Return only the part of the row which should be printed.
-        """
-        if not self.columns:
-            return row
-
-        # Extract the column values, in the order specified.
-        response = ()
-        for c in self.columns:
-            response += (row[c],)
-        return response
-
-    def getWriter(self):
-        return csv.writer(sys.stdout, dialect=self.dialect)
-        
-    def main(self, *filename):
-        """
-        The names of comma separated value files, such as might be
-        exported from a spreadsheet or database program.
-        """
-        headers_written = False
-
-        writer = self.getWriter()
-
-        # process the files in order
-        for name in filename:
-            f = open(name, 'rt')
+      - individual number: 1
+      - range: 1-3
+      - comma separated list: 1,2,3,4-6
+    """
+    nums = []
+    for c in columns:
+        for p in c.split(','):
+            p = p.strip()
             try:
-                reader = csv.reader(f)
+                c = int(p)
+                nums.append(c)
+            except (TypeError, ValueError):
+                start, ignore, end = p.partition('-')
+                try:
+                    start = int(start)
+                    end = int(end)
+                except (TypeError, ValueError):
+                    raise ValueError(
+                        'Did not understand %r, expected digit-digit' % c
+                    )
+                inc = 1 if start < end else -1
+                nums.extend(range(start, end+inc, inc))
+    # The user will pass us 1-based indexes, but we need to use
+    # 0-based indexing with the row.
+    return [n-1 for n in nums]
 
-                if self.skip_headers:
-                    if not headers_written:
-                        # This row must include the headers for the output
-                        headers = reader.next()
-                        writer.writerow(self.getPrintableColumns(headers))
-                        headers_written = True
-                    else:
-                        # We have seen headers before, and are skipping,
-                        # so do not write the first row of this file.
-                        ignore = reader.next()
 
-                # Process the rest of the file
-                for row in reader:
-                    writer.writerow(self.getPrintableColumns(row))
-            finally:
-                f.close()
-        return
+def _get_printable_columns(columns, row):
+    """Return only the part of the row which should be printed.
+    """
+    if not columns:
+        return row
+
+    # Extract the column values, in the order specified.
+    return tuple(row[c] for c in columns)
 
 
 def main():
-    csvcat().run()
+    parser = argparse.ArgumentParser(
+        description='Concatenate comma separated value files.',
+        epilog=EPILOG,
+    )
+    parser.add_argument(
+        '--skip-headers',
+        help=('Treat the first line of each file as a header,'
+              'and only include one copy in the output.'),
+        action='store_true',
+        default=False,
+    )
+    parser.add_argument(
+        '--columns', '--col', '-c',
+        help=("Limit the output to the specified columns."
+              "Columns are identified by number, starting with 0."),
+        default=[],
+        action='append',
+    )
+    parser.add_argument(
+        '--dialect', '-d',
+        help=('Specify the output dialect name.'
+              'Defaults to %(default)s.'),
+        default='excel',
+        choices=csv.list_dialects(),
+    )
+    parser.add_argument(
+        'filename',
+        nargs='+',
+        help='files to process',
+    )
+    args = parser.parse_args()
+
+    columns = _get_column_nums_from_args(args.columns)
+    writer = csv.writer(sys.stdout, dialect=args.dialect)
+    headers_written = False
+
+    for filename in args.filename:
+        with open(filename, 'r') as f:
+            reader = csv.reader(f)
+            if args.skip_headers:
+                if not headers_written:
+                    # This row must include the headers for the output
+                    headers = reader.next()
+                    writer.writerow(_get_printable_columns(columns, headers))
+                    headers_written = True
+                else:
+                    # We have seen headers before, and are skipping,
+                    # so do not write the first row of this file.
+                    ignore = reader.next()
+
+            # Process the rest of the file
+            for row in reader:
+                writer.writerow(_get_printable_columns(columns, row))
 
 
 if __name__ == '__main__':
