@@ -9,7 +9,6 @@ import csv
 import sys
 
 
-
 def _get_column_nums_from_args(columns):
     """Turn column inputs from user into list of simple numbers.
 
