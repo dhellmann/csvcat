@@ -146,5 +146,10 @@ To concatenate 2 files, including only the first and third columns:
                 f.close()
         return
 
-if __name__ == '__main__':
+
+def main():
     csvcat().run()
+
+
+if __name__ == '__main__':
+    main()
