@@ -52,3 +52,10 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# pbr
+ChangeLog
+AUTHORS
+
+# testrepository
+.testrepository
