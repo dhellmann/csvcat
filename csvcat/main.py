@@ -2,23 +2,12 @@
 """Concatenate csv files.
 """
 
+from __future__ import print_function
+
 import argparse
 import csv
 import sys
 
-EPILOG = """
-To concatenate 2 files, including all columns and headers:
-
-  $ csvcat file1.csv file2.csv
-
-To concatenate 2 files, skipping the headers in the second file:
-
-  $ csvcat --skip-headers file1.csv file2.csv
-
-To concatenate 2 files, including only the first and third columns:
-
-  $ csvcat --col 0,2 file1.csv file2.csv
-"""
 
 
 def _get_column_nums_from_args(columns):
@@ -63,28 +52,54 @@ def _get_printable_columns(columns, row):
     return tuple(row[c] for c in columns)
 
 
+class HelpAction(argparse.Action):
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        parser.print_help()
+        print("""
+To concatenate 2 files, including all columns and headers:
+
+  $ csvcat file1.csv file2.csv
+
+To concatenate 2 files, skipping the headers in the second file:
+
+  $ csvcat --skip-headers file1.csv file2.csv
+
+To concatenate 2 files, including only the first and third columns:
+
+  $ csvcat --col 0,2 file1.csv file2.csv
+""")
+        sys.exit(0)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Concatenate comma separated value files.',
-        epilog=EPILOG,
+        add_help=False,
+    )
+    parser.add_argument(
+        '--help', '-h',
+        action=HelpAction,
+        nargs=0,
+        help='show this help message and exit',
     )
     parser.add_argument(
         '--skip-headers',
-        help=('Treat the first line of each file as a header,'
+        help=('treat the first line of each file as a header,'
               'and only include one copy in the output.'),
         action='store_true',
         default=False,
     )
     parser.add_argument(
         '--columns', '--col', '-c',
-        help=("Limit the output to the specified columns."
+        help=("limit the output to the specified columns."
               "Columns are identified by number, starting with 0."),
         default=[],
         action='append',
     )
     parser.add_argument(
         '--dialect', '-d',
-        help=('Specify the output dialect name.'
+        help=('specify the output dialect name.'
               'Defaults to %(default)s.'),
         default='excel',
         choices=csv.list_dialects(),
