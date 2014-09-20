@@ -1,5 +1,6 @@
-csvcat - Concatenate comma separated value files.
-----------------------------------------
+===================================================
+ csvcat - Concatenate comma separated value files.
+===================================================
 
 csvcat reads one or more comma separated value text file (a CSV file)
 and outputs some or all of the data in the same format.  It includes
@@ -7,7 +8,7 @@ options for limiting and reordering the columns in the output, as well
 as skipping repeated headers.
 
 Installation
----------
+------------
 
 The simplest way to install is using pip::
 
@@ -27,7 +28,7 @@ including examples of how to use the program in various modes.
 
 
 Examples
--------
+--------
 
 The inputs to ``csvcat`` are any number of CSV files, and the output
 is CSV data printed to standard output.  The examples listed below
