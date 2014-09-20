@@ -47,10 +47,10 @@ def _get_column_nums_from_args(columns):
                         'Did not understand %r, expected digit-digit' % c
                     )
                 inc = 1 if start < end else -1
-                nums.extend(range(start, end+inc, inc))
+                nums.extend(range(start, end + inc, inc))
     # The user will pass us 1-based indexes, but we need to use
     # 0-based indexing with the row.
-    return [n-1 for n in nums]
+    return [n - 1 for n in nums]
 
 
 def _get_printable_columns(columns, row):
@@ -112,7 +112,7 @@ def main():
                 else:
                     # We have seen headers before, and are skipping,
                     # so do not write the first row of this file.
-                    ignore = reader.next()
+                    reader.next()
 
             # Process the rest of the file
             for row in reader:
