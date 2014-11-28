@@ -73,7 +73,7 @@ it is possible to reorder the columns of the input data, if needed.
     08/20/07,3
 
 Different output formats can be selected by using the ``--dialect``
-option.  There are only two dialects available by default, but the the
+option.  There are only two dialects available by default, but the
 ``csv`` module API supports registering additional dialects.
 
 ::
