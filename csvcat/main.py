@@ -120,13 +120,13 @@ def main():
             if args.skip_headers:
                 if not headers_written:
                     # This row must include the headers for the output
-                    headers = reader.next()
+                    headers = next(reader)
                     writer.writerow(_get_printable_columns(columns, headers))
                     headers_written = True
                 else:
                     # We have seen headers before, and are skipping,
                     # so do not write the first row of this file.
-                    reader.next()
+                    next(reader)
 
             # Process the rest of the file
             for row in reader:
